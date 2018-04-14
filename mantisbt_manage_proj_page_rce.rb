@@ -65,7 +65,7 @@ class MetasploitModule < Msf::Exploit::Remote
 
     print_status("Mantis version #{major}.#{minor}.#{rev} detected")
 
-    unless rest && res.code == 200 && (major.to_i > 1 || minor.to_i > 1 || (minor.to_i == 1 && rev.to_i > 3))
+    unless res.code == 200 && (major.to_i > 1 || minor.to_i > 1 || (minor.to_i == 1 && rev.to_i > 3))
       return CheckCode::Appears
     end
 
